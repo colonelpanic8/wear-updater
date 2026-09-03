@@ -31,6 +31,9 @@ object ApkInstaller {
             android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL,
         ).apply {
             setAppPackageName(release.packageName)
+            if (Build.VERSION.SDK_INT >= 31) {
+                setRequireUserAction(android.content.pm.PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
         }
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->

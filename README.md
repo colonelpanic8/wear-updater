@@ -6,7 +6,10 @@ an APK to Android's installer it verifies the package name, expected version,
 release digest when available, and the app's pinned signing-certificate hash.
 
 The app checks every 12 hours and posts a notification when an update is
-available. Android still requires a tap on its native install confirmation.
+available. The first update of an existing app may require Android's native
+confirmation. Once Wear Updater is that app's installer of record, Android can
+apply later updates without the second confirmation step; the receiver still
+handles a confirmation screen when the OS requires one.
 
 ## One-time watch setup
 
