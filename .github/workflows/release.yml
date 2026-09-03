@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/wear-updater.p12"
+          version="${GITHUB_REF_NAME#v}"
+          IFS=. read -r major minor patch <<< "$version"
+          {
+            echo "WEAR_UPDATER_STORE_FILE=$RUNNER_TEMP/wear-updater.p12"
+            echo "WEAR_UPDATER_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "WEAR_UPDATER_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "WEAR_UPDATER_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            echo "WEAR_UPDATER_VERSION_NAME=$version"
+            echo "WEAR_UPDATER_VERSION_CODE=$((major * 1000000 + minor * 1000 + patch))"
+          } >> "$GITHUB_ENV"
+      - name: Build and verify
+        run: ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
+      - name: Name APK
+        run: cp app/build/outputs/apk/release/app-release.apk wear-updater.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: wear-updater.apk
+          generate_release_notes: true
