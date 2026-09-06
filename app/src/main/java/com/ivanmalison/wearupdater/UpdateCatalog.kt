@@ -95,6 +95,13 @@ object UpdateCatalog {
             manifestUrl = "https://colonelpanic8.github.io/paseo-assembly-fdroid/watch/latest.json",
         ),
         GitHubReleaseSource(
+            packageName = "com.ivanmalison.tilewear",
+            label = "Tile Wear",
+            certificateSha256 = "83b1c3b1c4f4feb78e32f82cd674a212403bab89517fcf0d162f4ce5cb61bd74",
+            repository = "colonelpanic8/tile-wear",
+            assetName = "tile-wear-watch.apk",
+        ),
+        GitHubReleaseSource(
             packageName = "com.ivanmalison.wearupdater",
             label = "Wear Updater",
             certificateSha256 = "0adabe7ec93bf85d97160a7910d849f729642259fe5eeb6930e1dc8066f910eb",
