@@ -11,6 +11,8 @@ import java.security.MessageDigest
 
 object ApkInstaller {
     const val ACTION_INSTALL_RESULT = "com.ivanmalison.wearupdater.INSTALL_RESULT"
+    const val EXTRA_LABEL = "label"
+    const val EXTRA_PACKAGE_NAME = "packageName"
 
     fun install(context: Context, release: ReleaseDescriptor, apk: File) {
         require(context.packageManager.canRequestPackageInstalls()) {
@@ -45,7 +47,8 @@ object ApkInstaller {
             }
             val resultIntent = Intent(context, InstallResultReceiver::class.java).apply {
                 action = ACTION_INSTALL_RESULT
-                putExtra("label", release.label)
+                putExtra(EXTRA_LABEL, release.label)
+                putExtra(EXTRA_PACKAGE_NAME, release.packageName)
             }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             val pending = PendingIntent.getBroadcast(context, sessionId, resultIntent, flags)
