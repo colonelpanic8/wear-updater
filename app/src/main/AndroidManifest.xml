@@ -13,6 +13,7 @@
         <package android:name="com.colonelpanic.mova" />
         <package android:name="com.ivanmalison.akuvoxwear" />
         <package android:name="sh.paseo.assembly" />
+        <package android:name="com.ivanmalison.tilewear" />
         <package android:name="com.ivanmalison.wearupdater" />
     </queries>
 

@@ -6,6 +6,7 @@ import android.os.Build
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -110,14 +111,25 @@ object UpdateCatalog {
         ),
     )
 
-    fun check(context: Context): List<Result<UpdateState>> = sources.map { source ->
+    /** [onResult] fires as each source resolves so callers can show progress instead of a long blank wait. */
+    fun check(
+        context: Context,
+        onResult: (index: Int, result: Result<UpdateState>) -> Unit = { _, _ -> },
+    ): List<Result<UpdateState>> = sources.mapIndexed { index, source ->
         runCatching {
             val release = source.resolve()
             val installed = installedVersion(context.packageManager, source.packageName)
             UpdateState(release, installed, isNewer(release, installed))
-        }
+        }.also { onResult(index, it) }
     }
 }
+
+/**
+ * Installing the updater replaces this process, so it goes last and every other queued app
+ * gets installed first.
+ */
+fun installOrder(releases: List<ReleaseDescriptor>, selfPackageName: String): List<ReleaseDescriptor> =
+    releases.sortedBy { if (it.packageName == selfPackageName) 1 else 0 }
 
 fun parseGitHubRelease(
     json: String,
@@ -208,36 +220,141 @@ fun installedVersion(packageManager: PackageManager, packageName: String): Insta
 }
 
 object Network {
-    fun getJson(url: String): String = open(url).use { it.reader().readText() }
+    private const val MAX_ATTEMPTS = 4
+    private const val PROGRESS_INTERVAL_MILLIS = 150L
 
-    fun download(release: ReleaseDescriptor, destination: File) {
-        val digest = MessageDigest.getInstance("SHA-256")
-        open(release.downloadUrl).use { input ->
-            FileOutputStream(destination).use { output ->
-                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    output.write(buffer, 0, count)
-                    digest.update(buffer, 0, count)
-                }
-            }
-        }
-        val actualDigest = digest.digest().joinToString("") { "%02x".format(it) }
-        release.sha256?.let { expected ->
-            require(actualDigest == expected.lowercase()) { "Downloaded APK digest does not match its release metadata" }
+    fun getJson(url: String): String = withRetry {
+        val connection = open(url)
+        try {
+            connection.inputStream.reader().readText()
+        } finally {
+            connection.disconnect()
         }
     }
 
-    private fun open(url: String) = (URL(url).openConnection() as HttpURLConnection).apply {
+    fun download(
+        release: ReleaseDescriptor,
+        destination: File,
+        onProgress: (completed: Long, total: Long) -> Unit = { _, _ -> },
+        onRetry: (attempt: Int, error: String) -> Unit = { _, _ -> },
+    ) {
+        withRetry(onRetry) {
+            val resumeFrom = if (destination.exists()) destination.length() else 0L
+            val connection = open(url = release.downloadUrl, rangeStart = resumeFrom, allowRangeRefusal = true)
+            try {
+                if (connection.responseCode != HTTP_RANGE_NOT_SATISFIABLE) {
+                    val resuming = connection.responseCode == HttpURLConnection.HTTP_PARTIAL
+                    val start = if (resuming) resumeFrom else 0L
+                    val total = connection.contentLengthLong.takeIf { it >= 0 }?.plus(start) ?: -1L
+                    var completed = start
+                    onProgress(completed, total)
+                    connection.inputStream.use { input ->
+                        FileOutputStream(destination, resuming).use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var reportedAt = 0L
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                output.write(buffer, 0, count)
+                                completed += count
+                                val now = System.currentTimeMillis()
+                                if (now - reportedAt >= PROGRESS_INTERVAL_MILLIS) {
+                                    reportedAt = now
+                                    onProgress(completed, total)
+                                }
+                            }
+                            output.flush()
+                        }
+                    }
+                    onProgress(completed, total)
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }
+
+        release.sha256?.let { expected ->
+            val actual = sha256(destination)
+            if (actual != expected.lowercase()) {
+                destination.delete()
+                error("Downloaded APK digest does not match its release metadata")
+            }
+        }
+    }
+
+    /**
+     * Watch networking drops sockets often enough ("software caused connection abort") that a
+     * single failure should not end an install. Partial downloads resume via Range when the
+     * origin honours it, and restart from zero when it does not.
+     */
+    private fun <T> withRetry(
+        onRetry: (attempt: Int, error: String) -> Unit = { _, _ -> },
+        block: () -> T,
+    ): T {
+        var lastError: IOException? = null
+        for (attempt in 1..MAX_ATTEMPTS) {
+            try {
+                return block()
+            } catch (error: IOException) {
+                lastError = error
+                if (attempt == MAX_ATTEMPTS) break
+                onRetry(attempt, describe(error))
+                Thread.sleep(backoffMillis(attempt))
+            }
+        }
+        throw lastError ?: IllegalStateException("Retry loop ended without a result")
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private fun open(
+        url: String,
+        rangeStart: Long = 0L,
+        allowRangeRefusal: Boolean = false,
+    ): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
         connectTimeout = 15_000
         readTimeout = 60_000
         instanceFollowRedirects = true
         setRequestProperty("Accept", "application/vnd.github+json")
         setRequestProperty("User-Agent", "Ivan-Wear-Updater")
+        if (rangeStart > 0) setRequestProperty("Range", "bytes=$rangeStart-")
         connect()
-        if (responseCode !in 200..299) {
-            error("HTTP $responseCode from ${this.url.host}")
+        val acceptable = responseCode in 200..299 ||
+            (allowRangeRefusal && responseCode == HTTP_RANGE_NOT_SATISFIABLE)
+        if (!acceptable) {
+            val status = responseCode
+            val host = this.url.host
+            disconnect()
+            if (isTransient(status)) throw IOException("HTTP $status from $host")
+            error("HTTP $status from $host")
         }
-    }.inputStream
+    }
+
+    private fun isTransient(status: Int): Boolean = status >= 500 || status == 429 || status == 408
+
+    private const val HTTP_RANGE_NOT_SATISFIABLE = 416
+}
+
+fun backoffMillis(attempt: Int): Long = minOf(1_000L shl (attempt - 1), 8_000L)
+
+/** [IOException.message] is often null or a bare class name, which reads badly on a watch. */
+fun describe(error: Throwable): String =
+    error.message?.takeUnless(String::isBlank) ?: error.javaClass.simpleName
+
+fun formatBytes(bytes: Long): String = when {
+    bytes < 0 -> "?"
+    bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
+    bytes >= 1_000 -> "%.0f kB".format(bytes / 1_000.0)
+    else -> "$bytes B"
 }

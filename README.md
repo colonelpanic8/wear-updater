@@ -11,6 +11,16 @@ confirmation. Once Wear Updater is that app's installer of record, Android can
 apply later updates without the second confirmation step; the receiver still
 handles a confirmation screen when the OS requires one.
 
+Each app shows its own live status — checking, downloading with a byte count and
+progress bar, verifying, installing, and the final installer result — and the
+screen scrolls with the rotary crown or bezel. **Update all** installs every
+pending update in sequence, leaving Wear Updater itself for last because
+installing it restarts the app.
+
+Downloads retry with backoff and resume over HTTP `Range` when the watch drops a
+connection mid-transfer, which is common on Bluetooth-proxied networks
+(`software caused connection abort`).
+
 ## One-time watch setup
 
 Build or download `wear-updater.apk`, connect to the watch once with wireless

@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 
 class UpdateCatalogTest {
     @Test
@@ -45,4 +46,34 @@ class UpdateCatalogTest {
         assertFalse(isNewer(release, InstalledVersion("2.1.0", 100)))
         assertFalse(isNewer(release, InstalledVersion("2.2.0", 100)))
     }
+
+    @Test
+    fun installsTheUpdaterLastSoItDoesNotKillTheBatch() {
+        val releases = listOf(release("com.ivanmalison.wearupdater"), release("a.b"), release("c.d"))
+        val ordered = installOrder(releases, "com.ivanmalison.wearupdater")
+        assertEquals(listOf("a.b", "c.d", "com.ivanmalison.wearupdater"), ordered.map { it.packageName })
+    }
+
+    @Test
+    fun backsOffBetweenRetriesWithoutGrowingForever() {
+        assertEquals(1_000L, backoffMillis(1))
+        assertEquals(2_000L, backoffMillis(2))
+        assertEquals(8_000L, backoffMillis(8))
+    }
+
+    @Test
+    fun describesErrorsThatCarryNoMessage() {
+        assertEquals("software caused connection abort", describe(IOException("software caused connection abort")))
+        assertEquals("IOException", describe(IOException()))
+    }
+
+    @Test
+    fun formatsDownloadSizes() {
+        assertEquals("18.6 MB", formatBytes(18_600_000))
+        assertEquals("512 B", formatBytes(512))
+        assertEquals("?", formatBytes(-1))
+    }
+
+    private fun release(packageName: String) =
+        ReleaseDescriptor(packageName, packageName, "1.0.0", null, "url", null, "cert")
 }
