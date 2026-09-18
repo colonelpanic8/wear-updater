@@ -19,4 +19,6 @@ jobs:
           java-version: "17"
           cache: gradle
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug

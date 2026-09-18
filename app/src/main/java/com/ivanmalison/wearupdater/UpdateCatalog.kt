@@ -96,6 +96,13 @@ object UpdateCatalog {
             manifestUrl = "https://colonelpanic8.github.io/paseo-assembly-fdroid/watch/latest.json",
         ),
         GitHubReleaseSource(
+            packageName = "com.ivanmalison.translatewear",
+            label = "Live Translate",
+            certificateSha256 = "b291e1426fdb798c6a0463126fed57f6e8273ca450b67fb0eeb5eac64e4fb727",
+            repository = "colonelpanic8/translate-wear",
+            assetName = "translate-wear-watch.apk",
+        ),
+        GitHubReleaseSource(
             packageName = "com.ivanmalison.tilewear",
             label = "Tile Wear",
             certificateSha256 = "83b1c3b1c4f4feb78e32f82cd674a212403bab89517fcf0d162f4ce5cb61bd74",
