@@ -1,7 +1,7 @@
 # Ivan Wear Updater
 
 A small, allowlisted updater for Ivan's personal Wear OS apps. It checks signed
-release metadata for Mova, SmartPlus Unlock, Paseo, Tile Wear, Live Translate,
+release metadata for Mova, SmartPlus Unlock, Paseo, Tile Wear, Live Translate, EVA,
 and itself. Before handing
 an APK to Android's installer it verifies the package name, expected version,
 release digest when available, and the app's pinned signing-certificate hash.

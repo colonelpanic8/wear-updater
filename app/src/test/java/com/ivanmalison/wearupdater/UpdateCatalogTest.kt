@@ -22,6 +22,20 @@ class UpdateCatalogTest {
     }
 
     @Test
+    fun evaSelectsWatchAssetAndDetectsAdvancingReleaseTags() {
+        val source = UpdateCatalog.sources.single { it.packageName == "com.colonelpanic.eva" } as GitHubReleaseSource
+        val release = source.parse(
+            """{"tag_name":"v0.64.0","assets":[{"name":"eva.apk","browser_download_url":"https://example.test/phone.apk","digest":"sha256:phone"},{"name":"eva-wear.apk","browser_download_url":"https://example.test/watch.apk","digest":"sha256:watch"}]}""",
+        )
+        assertEquals("https://example.test/watch.apk", release.downloadUrl)
+        assertEquals("watch", release.sha256)
+        assertTrue(isNewer(release, InstalledVersion("0.63.0", 63000)))
+        assertFalse(isNewer(release, InstalledVersion("0.64.0", 64000)))
+        assertFalse(isNewer(release, InstalledVersion("0.65.0", 65000)))
+        assertEquals("com.ivanmalison.wearupdater", UpdateCatalog.sources.last().packageName)
+    }
+
+    @Test
     fun parsesAkuvoxBuildFromTag() {
         assertEquals(3L, akuvoxVersionCode("v7.50.0003-wear.3"))
         assertEquals(null, akuvoxVersionCode("v7.50.0003"))

@@ -45,9 +45,11 @@ class GitHubReleaseSource(
     private val assetName: String,
     private val tagVersionCode: (String) -> Long? = { null },
 ) : UpdateSource(packageName, label, certificateSha256) {
-    override fun resolve(): ReleaseDescriptor {
-        val json = Network.getJson("https://api.github.com/repos/$repository/releases/latest")
-        return parseGitHubRelease(
+    override fun resolve(): ReleaseDescriptor =
+        parse(Network.getJson("https://api.github.com/repos/$repository/releases/latest"))
+
+    internal fun parse(json: String): ReleaseDescriptor =
+        parseGitHubRelease(
             json = json,
             packageName = packageName,
             label = label,
@@ -55,7 +57,6 @@ class GitHubReleaseSource(
             certificateSha256 = certificateSha256,
             tagVersionCode = tagVersionCode,
         )
-    }
 }
 
 class JsonManifestSource(
@@ -108,6 +109,13 @@ object UpdateCatalog {
             certificateSha256 = "83b1c3b1c4f4feb78e32f82cd674a212403bab89517fcf0d162f4ce5cb61bd74",
             repository = "colonelpanic8/tile-wear",
             assetName = "tile-wear-watch.apk",
+        ),
+        GitHubReleaseSource(
+            packageName = "com.colonelpanic.eva",
+            label = "EVA",
+            certificateSha256 = "688df17827dd9a002705baf0400c80f8f4650c6e87c3fc91d41f32be287f8b68",
+            repository = "colonelpanic8/eva",
+            assetName = "eva-wear.apk",
         ),
         GitHubReleaseSource(
             packageName = "com.ivanmalison.wearupdater",
