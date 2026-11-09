@@ -118,6 +118,13 @@ object UpdateCatalog {
             assetName = "eva-wear.apk",
         ),
         GitHubReleaseSource(
+            packageName = "me.henneke.wearauthn.authenticator.nightly",
+            label = "WearAuthn",
+            certificateSha256 = "6ccae29960b9b8019ed6e43045e89da9b7635d601ed6d4f95f6ba06b9d44bb3f",
+            repository = "colonelpanic8/WearAuthn",
+            assetName = "wearauthn-watch.apk",
+        ),
+        GitHubReleaseSource(
             packageName = "com.ivanmalison.wearupdater",
             label = "Wear Updater",
             certificateSha256 = "0adabe7ec93bf85d97160a7910d849f729642259fe5eeb6930e1dc8066f910eb",

@@ -14,6 +14,9 @@
         <package android:name="com.ivanmalison.akuvoxwear" />
         <package android:name="sh.paseo.assembly" />
         <package android:name="com.ivanmalison.tilewear" />
+        <package android:name="com.ivanmalison.translatewear" />
+        <package android:name="com.colonelpanic.eva" />
+        <package android:name="me.henneke.wearauthn.authenticator.nightly" />
         <package android:name="com.ivanmalison.wearupdater" />
     </queries>
 
