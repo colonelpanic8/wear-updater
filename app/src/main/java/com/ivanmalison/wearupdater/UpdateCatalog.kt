@@ -90,26 +90,6 @@ object UpdateCatalog {
             assetName = "smartplus-wear-watch.apk",
             tagVersionCode = ::akuvoxVersionCode,
         ),
-        JsonManifestSource(
-            packageName = "sh.paseo.assembly",
-            label = "Paseo",
-            certificateSha256 = "8d229a78b0d7c22086e743c9edc3678b5ed7e9c5388aeb18013729568139b8ee",
-            manifestUrl = "https://colonelpanic8.github.io/paseo-assembly-fdroid/watch/latest.json",
-        ),
-        GitHubReleaseSource(
-            packageName = "com.ivanmalison.translatewear",
-            label = "Live Translate",
-            certificateSha256 = "b291e1426fdb798c6a0463126fed57f6e8273ca450b67fb0eeb5eac64e4fb727",
-            repository = "colonelpanic8/translate-wear",
-            assetName = "translate-wear-watch.apk",
-        ),
-        GitHubReleaseSource(
-            packageName = "com.ivanmalison.tilewear",
-            label = "Tile Wear",
-            certificateSha256 = "83b1c3b1c4f4feb78e32f82cd674a212403bab89517fcf0d162f4ce5cb61bd74",
-            repository = "colonelpanic8/tile-wear",
-            assetName = "tile-wear-watch.apk",
-        ),
         GitHubReleaseSource(
             packageName = "com.colonelpanic.eva",
             label = "EVA",

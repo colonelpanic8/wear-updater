@@ -42,11 +42,11 @@ class UpdateCatalogTest {
     }
 
     @Test
-    fun parsesPaseoManifest() {
+    fun parsesJsonUpdateManifest() {
         val release = parseUpdateManifest(
-            json = """{"packageName":"sh.paseo.assembly","versionCode":1000001935,"versionName":"0.7.0-assembly.193","url":"https://example.test/paseo.apk","sha256":"beef","certificateSha256":"cafe"}""",
-            expectedPackageName = "sh.paseo.assembly",
-            label = "Paseo",
+            json = """{"packageName":"example.app","versionCode":1000001935,"versionName":"0.7.0-assembly.193","url":"https://example.test/app.apk","sha256":"beef","certificateSha256":"cafe"}""",
+            expectedPackageName = "example.app",
+            label = "Example",
             expectedCertificateSha256 = "cafe",
         )
         assertEquals(1000001935L, release.versionCode)
